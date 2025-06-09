@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "simple-expense-tracker-app",
-    "slug": "simple-expense-tracker-app",
+    "name": "simple-photo-sticker-app",
+    "slug": "simple-photo-sticker-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "simpleexpensetrackerapp",
+    "scheme": "simplestickerapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
