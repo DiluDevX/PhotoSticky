@@ -61,6 +61,7 @@ export default function Index() {
       try {
         const localUrl = await captureRef(imageRef, {
           width: 440,
+          height: 440,
           quality: 1,
         });
 
