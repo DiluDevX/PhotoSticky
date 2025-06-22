@@ -6,10 +6,18 @@ import EmojiSticker from "@/components/EmojiSticker";
 import IconButton from "@/components/IconButton";
 import ImageViewer from "@/components/ImageViewer";
 import domtoimage from "dom-to-image";
+import { BlurView } from "expo-blur";
+import * as Haptics from "expo-haptics";
 import * as ImagePicker from "expo-image-picker";
 import * as MediaLibrary from "expo-media-library";
 import { useRef, useState } from "react";
-import { ImageSourcePropType, Platform, StyleSheet, View } from "react-native";
+import {
+  ImageSourcePropType,
+  Platform,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { captureRef } from "react-native-view-shot";
 
@@ -30,6 +38,7 @@ export default function Index() {
   }
 
   const pickImageAsync = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ["images"],
       allowsEditing: true,
@@ -39,6 +48,7 @@ export default function Index() {
     if (!result.canceled) {
       setSelectedPhoto(result.assets[0].uri);
       setShowOptions(true);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       console.log("Image selected:", result.assets[0].uri);
     } else {
       console.log("You did not select any image.");
@@ -46,17 +56,21 @@ export default function Index() {
   };
 
   const onReset = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setShowOptions(false);
     setPickedEmoji(null);
     setSelectedPhoto(null);
   };
 
   const onAddSticker = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setIsModalVisible(true);
     console.log("Add sticker button pressed");
   };
 
   const onSaveImageAsync = async () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
     if (Platform.OS !== "web") {
       try {
         const localUrl = await captureRef(imageRef, {
@@ -66,6 +80,7 @@ export default function Index() {
         });
 
         await MediaLibrary.saveToLibraryAsync(localUrl);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
 
         if (localUrl) {
           alert("Image saved successfully!");
@@ -77,7 +92,7 @@ export default function Index() {
       try {
         const dataUrl = await domtoimage.toJpeg(imageRef.current, {
           quality: 1,
-          width: 320,
+          width: 440,
           height: 440,
         });
 
@@ -93,49 +108,69 @@ export default function Index() {
 
   return (
     <GestureHandlerRootView style={styles.container}>
-      <View style={styles.imageContainer}>
-        <View ref={imageRef} collapsable={false}>
-          <ImageViewer
-            imgSource={
-              selectedPhoto ? { uri: selectedPhoto } : PlaceholderImage
-            }
-          />
-          {pickedEmoji && (
-            <EmojiSticker imageSize={100} stickerSource={pickedEmoji} />
-          )}
-        </View>
-      </View>
-      {showOptions ? (
-        <View style={styles.optionsContainer}>
-          <View style={styles.optionsRow}>
-            <IconButton icon="refresh" label="Reset" onPress={onReset} />
-            <CircleButton onPress={onAddSticker} />
-            <IconButton
-              icon="save-alt"
-              label="Save"
-              onPress={onSaveImageAsync}
-            />
+      <BlurView intensity={20} tint="dark" style={styles.blurContainer}>
+        <View style={styles.content}>
+          <Text style={styles.title}>PhotoSticky</Text>
+
+          <View style={styles.imageContainer}>
+            <View
+              ref={imageRef}
+              collapsable={false}
+              style={styles.imageWrapper}
+            >
+              <ImageViewer
+                imgSource={
+                  selectedPhoto ? { uri: selectedPhoto } : PlaceholderImage
+                }
+              />
+              {pickedEmoji && (
+                <EmojiSticker imageSize={100} stickerSource={pickedEmoji} />
+              )}
+            </View>
           </View>
+
+          {showOptions ? (
+            <View style={styles.optionsContainer}>
+              <View style={styles.optionsRow}>
+                <IconButton icon="refresh" label="Reset" onPress={onReset} />
+                <CircleButton onPress={onAddSticker} />
+                <IconButton
+                  icon="save-alt"
+                  label="Save"
+                  onPress={onSaveImageAsync}
+                />
+              </View>
+            </View>
+          ) : (
+            <View style={styles.footerContainer}>
+              <Button
+                label="Choose a Photo"
+                theme="primary"
+                onPress={pickImageAsync}
+              />
+              <Button
+                label="Use this Photo"
+                onPress={() => {
+                  if (selectedPhoto) {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setShowOptions(true);
+                  }
+                }}
+              />
+            </View>
+          )}
+
+          <EmojiPicker
+            isVisible={isModalVisible}
+            onClose={() => setIsModalVisible(false)}
+          >
+            <EmojiList
+              onSelect={setPickedEmoji}
+              onCloseModal={() => setIsModalVisible(false)}
+            />
+          </EmojiPicker>
         </View>
-      ) : (
-        <View style={styles.footerContainer}>
-          <Button
-            label="Choose a Photo"
-            theme="primary"
-            onPress={pickImageAsync}
-          />
-          <Button label="Use this Photo" onPress={() => setShowOptions(true)} />
-        </View>
-      )}
-      <EmojiPicker
-        isVisible={isModalVisible}
-        onClose={() => setIsModalVisible(false)}
-      >
-        <EmojiList
-          onSelect={setPickedEmoji}
-          onCloseModal={() => setIsModalVisible(false)}
-        />
-      </EmojiPicker>
+      </BlurView>
     </GestureHandlerRootView>
   );
 }
@@ -143,25 +178,57 @@ export default function Index() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#25292e",
+    backgroundColor: "#18191a",
+  },
+  blurContainer: {
+    flex: 1,
+  },
+  content: {
+    flex: 1,
     alignItems: "center",
+  },
+  title: {
+    fontSize: 28,
+    fontWeight: "bold",
+    color: "#fff",
+    textAlign: "center",
+    marginTop: 16,
+    marginBottom: 10,
+    textShadowColor: "rgba(0, 255, 255, 0.5)",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 10,
   },
   imageContainer: {
     flex: 1,
-    paddingTop: 48,
+    justifyContent: "center",
+    alignItems: "center",
+    width: "100%",
+    paddingVertical: 20,
+  },
+  imageWrapper: {
+    borderRadius: 25,
+    shadowColor: "cyan",
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
   },
   footerContainer: {
-    paddingVertical: 20,
-    gap: 10,
+    paddingVertical: 30,
+    gap: 16,
     alignItems: "center",
     width: "100%",
   },
   optionsContainer: {
-    position: "absolute",
-    bottom: 80,
+    marginTop: 20,
+    marginBottom: 40,
+    padding: 20,
+    borderRadius: 16,
+    backgroundColor: "rgba(30, 30, 30, 0.6)",
   },
   optionsRow: {
     alignItems: "center",
     flexDirection: "row",
+    gap: 30,
   },
 });
